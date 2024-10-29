@@ -18,6 +18,10 @@ repositories {
 dependencies {
     // Use JUnit Jupiter for testing.
     testImplementation(libs.junit.jupiter)
+    testImplementation("io.github.bonigarcia:selenium-jupiter:5.1.1")
+    testImplementation("org.assertj:assertj-core:3.26.3")
+    testImplementation("org.seleniumhq.selenium:selenium-java:3.141.59")
+    testImplementation("io.github.bonigarcia:webdrivermanager:5.9.2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
