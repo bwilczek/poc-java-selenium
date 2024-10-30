@@ -19,6 +19,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 
@@ -32,7 +33,11 @@ class ChromeTest {
 
     @BeforeEach
     void setupTest() {
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--window-size=1400,800");
+        driver = new ChromeDriver(options);
     }
 
     @AfterEach
@@ -44,11 +49,9 @@ class ChromeTest {
     void test() {
         driver.get("https://bwilczek.github.io/watir_pump_tutorial/todo_lists.html");
         List<WebElement> lists = driver.findElements(By.xpath("//div[@role='todo_list']"));
-        List<String> titles = lists.stream().map(element -> element.findElement(By.xpath("//div[@role='title']")).getText()).collect(Collectors.toList());
+        List<String> titles = lists.stream().map(element -> element.findElement(By.xpath("./div[@role='title']")).getText()).collect(Collectors.toList());
 
-        assertThat(titles)
-          .withFailMessage(String.format("Expected title not found among: %s", String.join(", ", titles)))
-          .contains("Home");
+        assertThat(titles).contains("Home");
     }
 }
 

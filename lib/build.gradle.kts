@@ -5,6 +5,8 @@
  * For more details on building Java & JVM projects, please refer to https://docs.gradle.org/8.10.2/userguide/building_java_projects.html in the Gradle documentation.
  */
 
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -42,4 +44,9 @@ java {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+
+    testLogging {
+        showStandardStreams = false
+        exceptionFormat = TestExceptionFormat.FULL
+    }
 }
