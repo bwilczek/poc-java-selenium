@@ -1,7 +1,7 @@
 The goal is to have four tasks:
 * [x] run junit for unit tests `./gradlew unitTest`
 * [x] run junit for Selenium tests `./gradlew seleniumTest`
-* [ ] create a basic POM for Selenium tests
+* [x] create a basic POM for Selenium tests
 * [x] run Rest Assured tests, possibly also using junit
 * [ ] run cucumber features with Playwright underneath (POM included)
 
