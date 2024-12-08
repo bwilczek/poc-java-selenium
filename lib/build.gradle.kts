@@ -17,6 +17,10 @@ dependencies {
     testImplementation("io.rest-assured:rest-assured:5.3.0")
     testImplementation("org.hamcrest:hamcrest:2.2")
 
+    testImplementation("io.cucumber:cucumber-java:7.15.0")
+    testImplementation("io.cucumber:cucumber-junit:7.15.0") // For JUnit 5 integration
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:latest.release")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // This dependency is exported to consumers, that is to say found on their compile classpath.
@@ -86,4 +90,22 @@ tasks.register<Test>("apiTest") {
     group = "verification"
     testClassesDirs = apiTestSourceSet.output.classesDirs
     classpath = apiTestSourceSet.runtimeClasspath
+}
+
+// Cucumber tests configuration
+val cucumberTestSourceSet = sourceSets.create("cucumberTest") {
+    java.srcDir("src/test/cucumber/java")
+    resources.srcDir("src/test/cucumber/resources")
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].compileClasspath
+    runtimeClasspath += output + sourceSets["test"].runtimeClasspath
+}
+
+// Cucumber tests configuration
+tasks.register<Test>("cucumberTest") {
+    description = "Runs Cucumber tests."
+    group = "verification"
+    testClassesDirs = cucumberTestSourceSet.output.classesDirs
+    classpath = cucumberTestSourceSet.runtimeClasspath
+    systemProperty("cucumber.glue", "org.example.steps") // Package for step definitions
+    systemProperty("cucumber.features", "src/test/cucumber/resources/features") // Path to features
 }
