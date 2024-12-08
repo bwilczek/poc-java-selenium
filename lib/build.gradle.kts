@@ -14,6 +14,8 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.26.3")
     testImplementation("org.seleniumhq.selenium:selenium-java:3.141.59")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.9.2")
+    testImplementation("io.rest-assured:rest-assured:5.3.0")
+    testImplementation("org.hamcrest:hamcrest:2.2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -32,6 +34,10 @@ java {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    testLogging {
+        showStandardStreams = false
+        exceptionFormat = TestExceptionFormat.FULL
+    }
 }
 
 // Unit tests configuration
@@ -64,4 +70,20 @@ tasks.register<Test>("seleniumTest") {
     group = "verification"
     testClassesDirs = seleniumTestSourceSet.output.classesDirs
     classpath = seleniumTestSourceSet.runtimeClasspath
+}
+
+// Rest Assured tests configuration
+val apiTestSourceSet = sourceSets.create("apiTest") {
+    java.srcDir("src/test/api")
+    resources.srcDir("src/test/api/resources")
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].compileClasspath
+    runtimeClasspath += output + sourceSets["test"].runtimeClasspath
+}
+
+// Rest Assured tests configuration
+tasks.register<Test>("apiTest") {
+    description = "Runs API tests."
+    group = "verification"
+    testClassesDirs = apiTestSourceSet.output.classesDirs
+    classpath = apiTestSourceSet.runtimeClasspath
 }
