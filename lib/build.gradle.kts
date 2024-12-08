@@ -39,7 +39,7 @@ java {
 tasks.withType<Test> {
     useJUnitPlatform()
     testLogging {
-        showStandardStreams = false
+        showStandardStreams = true
         exceptionFormat = TestExceptionFormat.FULL
     }
 }

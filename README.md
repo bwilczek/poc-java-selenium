@@ -1,141 +1,347 @@
-The goal is to have four tasks:
+The goals of this PoC:
 * [x] run junit for unit tests `./gradlew unitTest`
 * [x] run junit for Selenium tests `./gradlew seleniumTest`
 * [x] create a basic POM for Selenium tests
-* [x] run Rest Assured tests, possibly also using junit
-* [ ] run cucumber features with Playwright underneath (POM included)
+* [x] run Rest Assured tests, possibly also using `./gradlew apiTest`
+* [ ] run cucumber features with Playwright underneath (POM included) `./gradlew cucumberTest`
+* [ ] add GHA
 
 Suggestions about runnint `cucumber` from chatgpt:
 
-## Run cucumber
+## Cucumber Hooks and StepDefinitions
 
-To run **Cucumber** features in a Gradle project, you need to integrate Cucumber with your test framework (e.g., JUnit 5). Below is an example configuration for adding a custom task to run Cucumber feature files.
+In a JUnit 5 project with Cucumber, you can define **Cucumber Hooks** (like `@Before`, `@After`, `@BeforeAll`, and `@AfterAll`) in a **dedicated class** within your test package. These hooks allow you to execute code at specific points in the Cucumber test lifecycle.
+
+Here’s how to integrate Cucumber hooks in a JUnit 5 project:
 
 ---
 
-### 1. Add Cucumber Dependencies
-Update your dependencies to include Cucumber:
+### 1. **Create a Hooks Class**
+Define a separate class for hooks within your `src/test` directory. Annotate the methods with Cucumber hook annotations (`@Before`, `@After`, etc.).
+
+```java
+import io.cucumber.java.Before;
+import io.cucumber.java.After;
+import io.cucumber.java.BeforeAll;
+import io.cucumber.java.AfterAll;
+
+public class Hooks {
+
+    @BeforeAll
+    public static void beforeAll() {
+        System.out.println("This runs once before all scenarios.");
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        System.out.println("This runs once after all scenarios.");
+    }
+
+    @Before
+    public void beforeEachScenario() {
+        System.out.println("This runs before each scenario.");
+    }
+
+    @After
+    public void afterEachScenario() {
+        System.out.println("This runs after each scenario.");
+    }
+}
+```
+
+---
+
+### 2. **Ensure Hooks Are in the Glue Path**
+Cucumber requires all step definitions and hooks to be in the **glue path**. The glue path is specified when you configure the Cucumber runner. By default, the glue path is the same package (or sub-packages) as your step definitions.
+
+For example, if your step definitions are in `com.example.steps`, place the `Hooks` class in `com.example.steps` or a sub-package like `com.example.steps.hooks`.
+
+---
+
+### 3. **Configure JUnit 5 with Cucumber**
+Ensure your project has a Cucumber JUnit 5 configuration class. It might look like this:
+
+```java
+import io.cucumber.junit.platform.engine.Cucumber;
+
+@Cucumber
+public class CucumberTest {
+    // This class serves as the entry point for Cucumber with JUnit 5.
+}
+```
+
+This class:
+- Uses the `@Cucumber` annotation to integrate Cucumber with JUnit 5.
+- Ensures all glue code (step definitions and hooks) is scanned and executed.
+
+---
+
+### 4. **Annotations Available for Cucumber Hooks**
+You can use these annotations to execute hooks at specific times:
+- `@Before`: Runs before each scenario.
+- `@After`: Runs after each scenario.
+- `@BeforeAll`: Runs once before all scenarios (requires a static method).
+- `@AfterAll`: Runs once after all scenarios (requires a static method).
+- `@BeforeStep`: Runs before each step in a scenario.
+- `@AfterStep`: Runs after each step in a scenario.
+
+---
+
+### 5. **Dependency Requirements**
+Ensure your `build.gradle` includes the required dependencies for Cucumber with JUnit 5:
 
 ```kotlin
 dependencies {
-    testImplementation("io.cucumber:cucumber-java:7.15.0")
-    testImplementation("io.cucumber:cucumber-junit:7.15.0") // For JUnit 5 integration
-    testImplementation("io.cucumber:cucumber-spring:7.15.0") // Optional, if Spring is used
+    testImplementation("io.cucumber:cucumber-java:7.14.0")
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:7.14.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
 }
 ```
 
 ---
 
-### 2. Directory Structure for Cucumber Features
-Organize your project as follows:
-
+### Example Test Layout:
 ```
-src/
-├── main/
-│   └── kotlin/
-├── test/
-│   └── kotlin/
-│       └── com/example/steps/
-│           └── StepDefinitions.kt
-│   └── resources/
-│       └── features/
-│           └── example.feature
+src/test/java/
+├── com/example/
+│   ├── steps/
+│   │   ├── StepDefinitions.java
+│   │   ├── Hooks.java
+│   └── CucumberTest.java
 ```
 
-- **StepDefinitions**: Contains the step definition classes (`StepDefinitions.kt`).
-- **features**: Contains `.feature` files that describe the test scenarios.
+This setup ensures hooks and step definitions are recognized and executed during your Cucumber tests.
+
+## Shared Playwright instance
+
+To create a shared Playwright browser instance in a Cucumber `Hooks` class and make it accessible to `StepDefinitions` methods, you can use dependency injection. This ensures that the browser instance is properly managed and shared across the steps of a scenario.
+
+Here's how to implement it:
 
 ---
 
-### 3. Create a Custom `cucumberTest` Task
-
-Add the following to your `build.gradle.kts`:
+### 1. **Add Playwright Dependency**
+Ensure you have the Playwright Java dependency in your `build.gradle` file:
 
 ```kotlin
-val cucumberTestSourceSet = sourceSets.create("cucumberTest") {
-    java.srcDir("src/test/kotlin")
-    resources.srcDir("src/test/resources")
-    compileClasspath += sourceSets["main"].output + configurations["testImplementation"]
-    runtimeClasspath += output + compileClasspath
-}
-
-configurations["cucumberTestImplementation"].extendsFrom(configurations["testImplementation"])
-
-tasks.register<Test>("cucumberTest") {
-    description = "Runs Cucumber feature tests."
-    group = "verification"
-
-    testClassesDirs = cucumberTestSourceSet.output.classesDirs
-    classpath = cucumberTestSourceSet.runtimeClasspath
-
-    systemProperty("cucumber.glue", "com.example.steps") // Package for step definitions
-    systemProperty("cucumber.features", "src/test/resources/features") // Path to features
-
-    useJUnitPlatform() // Ensures JUnit 5 is used with Cucumber
+dependencies {
+    testImplementation("com.microsoft.playwright:playwright:1.39.0")
 }
 ```
 
 ---
 
-### 4. Example `StepDefinitions.kt`
+### 2. **Define the Hooks Class**
+The `Hooks` class initializes and manages the Playwright browser instance. Use `@Before` and `@After` hooks to control the lifecycle.
 
-```kotlin
-package com.example.steps
+```java
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
+import io.cucumber.java.Before;
+import io.cucumber.java.After;
 
-import io.cucumber.java.en.Given
-import io.cucumber.java.en.When
-import io.cucumber.java.en.Then
-import kotlin.test.assertEquals
+public class Hooks {
 
-class StepDefinitions {
-    private var result: Int = 0
+    private static Playwright playwright;
+    private static Browser browser;
+    private static Page page;
 
-    @Given("a number {int}")
-    fun givenNumber(number: Int) {
-        result = number
+    @Before
+    public void setUp() {
+        // Initialize Playwright and create a browser instance
+        playwright = Playwright.create();
+        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false)); // Headless mode off for debugging
+        page = browser.newPage();
     }
 
-    @When("I add {int}")
-    fun addNumber(number: Int) {
-        result += number
+    @After
+    public void tearDown() {
+        // Close the browser and Playwright
+        if (page != null) {
+            page.close();
+        }
+        if (browser != null) {
+            browser.close();
+        }
+        if (playwright != null) {
+            playwright.close();
+        }
     }
 
-    @Then("the result should be {int}")
-    fun verifyResult(expected: Int) {
-        assertEquals(expected, result)
+    public static Page getPage() {
+        return page;
     }
 }
 ```
 
 ---
 
-### 5. Example `example.feature`
+### 3. **Access the Browser Instance in StepDefinitions**
+In the `StepDefinitions` class, use the `Hooks.getPage()` method to access the shared `Page` instance:
 
-```gherkin
-Feature: Addition
+```java
+import com.microsoft.playwright.Page;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 
-  Scenario: Add two numbers
-    Given a number 5
-    When I add 10
-    Then the result should be 15
+public class StepDefinitions {
+
+    private final Page page = Hooks.getPage(); // Access the shared page instance
+
+    @Given("I navigate to {string}")
+    public void iNavigateTo(String url) {
+        page.navigate(url); // Use the shared page instance to navigate
+    }
+
+    @When("I click on the button with selector {string}")
+    public void iClickOnTheButtonWithSelector(String selector) {
+        page.locator(selector).click(); // Use the shared page instance to interact
+    }
+
+    @Then("The page title should be {string}")
+    public void thePageTitleShouldBe(String expectedTitle) {
+        String actualTitle = page.title();
+        if (!actualTitle.equals(expectedTitle)) {
+            throw new AssertionError("Expected title: " + expectedTitle + ", but got: " + actualTitle);
+        }
+    }
+}
 ```
 
 ---
 
-### 6. Running Cucumber Tests
-Execute the custom task:
+### 4. **Important Notes**
+1. **Thread Safety**: Cucumber creates a new instance of the `StepDefinitions` class for each scenario, ensuring thread safety. However, if you run scenarios in parallel, ensure the `Hooks` class uses thread-local storage for the `Page` instance.
 
-```bash
-./gradlew cucumberTest
+2. **Parallel Execution**:
+   - Use `ThreadLocal` for Playwright objects to avoid conflicts when running parallel scenarios:
+     ```java
+     private static final ThreadLocal<Page> threadLocalPage = new ThreadLocal<>();
+
+     public static Page getPage() {
+         return threadLocalPage.get();
+     }
+     ```
+     Set the thread-local instance in the `@Before` hook.
+
+3. **Headless vs. Headed Mode**:
+   - Use `setHeadless(true)` in `LaunchOptions` for faster execution unless debugging.
+
+---
+
+### Example Workflow
+1. Cucumber initializes the `Hooks` class and calls the `@Before` hook to set up Playwright.
+2. Steps in `StepDefinitions` use the shared `Page` instance from `Hooks`.
+3. After the scenario, the `@After` hook ensures Playwright resources are cleaned up.
+
+This setup ensures an efficient and reusable Playwright browser instance across your tests.
+
+## GHA setup
+
+To run `gradlew test` in a GitHub Actions workflow, you need to set up a workflow configuration file that installs the required Java environment, checks out your code, and executes the Gradle command. Here's how you can do it:
+
+---
+
+### 1. **Create a Workflow File**
+Add a YAML file in the `.github/workflows` directory of your repository. For example, name it `gradle-tests.yml`.
+
+---
+
+### 2. **Sample Workflow Configuration**
+
+```yaml
+name: Java CI with Gradle
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Java
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17' # Specify your required Java version
+          distribution: 'temurin' # Use Temurin as the JDK distribution
+          cache: gradle # Enable Gradle caching
+
+      # Step 3: Cache Gradle dependencies
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # Step 4: Run Gradle tests
+      - name: Run tests
+        run: ./gradlew test
 ```
 
 ---
 
-### How It Works
-- **Source Set**: The `cucumberTest` source set uses `src/test/kotlin` for step definitions and `src/test/resources` for `.feature` files.
-- **Cucumber System Properties**:
-  - `cucumber.glue`: Specifies the package containing step definitions.
-  - `cucumber.features`: Specifies the directory containing `.feature` files.
-- **JUnit 5 Integration**: The `useJUnitPlatform()` ensures JUnit 5 is used for test execution.
+### 3. **Explanation of Steps**
+- **Checkout Repository**: Uses the `actions/checkout` action to pull your repository's code.
+- **Set Up Java**: Configures the required JDK version (e.g., Java 17). Update the version to match your project's requirements.
+- **Cache Dependencies**: Caches Gradle dependencies to speed up subsequent builds. The cache key is based on the Gradle files to ensure updates invalidate the cache.
+- **Run Tests**: Executes `./gradlew test` to run your tests.
 
-Let me know if you need further refinements!
+---
+
+### 4. **Optional Enhancements**
+- **Specify Gradle Wrapper**: Ensure the `gradlew` script is included in your repository and marked executable:
+  ```bash
+  chmod +x gradlew
+  git add gradlew
+  git commit -m "Add gradlew script"
+  ```
+
+- **Matrix Testing**: Test against multiple Java versions:
+  ```yaml
+  jobs:
+    test:
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          java-version: [11, 17]
+      steps:
+        - uses: actions/checkout@v3
+        - uses: actions/setup-java@v3
+          with:
+            java-version: ${{ matrix.java-version }}
+            distribution: 'temurin'
+        - run: ./gradlew test
+  ```
+
+---
+
+### 5. **Triggering the Workflow**
+This workflow triggers on:
+- Push events to the `main` branch.
+- Pull requests targeting the `main` branch.
+
+You can adjust the `on` configuration to match your branch or event requirements.
+
+---
+
+### 6. **Viewing Results**
+- After the workflow runs, check the **Actions** tab in your GitHub repository.
+- View the logs to see the output of `./gradlew test`, including any test failures or build issues.
+
+This setup ensures that your Gradle tests are automatically executed on every push or pull request, integrating seamlessly with your CI pipeline.
