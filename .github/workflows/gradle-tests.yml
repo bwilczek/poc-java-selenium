@@ -1,0 +1,48 @@
+name: Java CI with Gradle
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Java
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21' # Specify your required Java version
+          distribution: 'temurin' # Use Temurin as the JDK distribution
+          cache: gradle # Enable Gradle caching
+
+      # Step 3: Cache Gradle dependencies
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # Step 4: Run Gradle tests
+      - name: Run unit tests
+        run: ./gradlew unitTest
+
+      - name: Run REST Assured tests
+        run: ./gradlew apiTest
+
+      - name: Run selenium tests
+        run: ./gradlew seleniumTest
+
+      - name: Run cucumber features
+        run: ./gradlew cucumberTest
