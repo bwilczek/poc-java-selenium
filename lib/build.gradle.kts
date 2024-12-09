@@ -10,16 +10,24 @@ repositories {
 
 dependencies {
     testImplementation(libs.junit.jupiter)
-    testImplementation("io.github.bonigarcia:selenium-jupiter:5.1.1")
     testImplementation("org.assertj:assertj-core:3.26.3")
+
+    // Selenium
+    testImplementation("io.github.bonigarcia:selenium-jupiter:5.1.1")
     testImplementation("org.seleniumhq.selenium:selenium-java:3.141.59")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.9.2")
+
+    // REST Assured
     testImplementation("io.rest-assured:rest-assured:5.3.0")
     testImplementation("org.hamcrest:hamcrest:2.2")
 
+    // Cucumber
     testImplementation("io.cucumber:cucumber-java:7.15.0")
     testImplementation("io.cucumber:cucumber-junit:7.15.0") // For JUnit 5 integration
     testImplementation("io.cucumber:cucumber-junit-platform-engine:latest.release")
+
+    // Playwright
+    testImplementation("com.microsoft.playwright:playwright:1.39.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -39,7 +47,7 @@ java {
 tasks.withType<Test> {
     useJUnitPlatform()
     testLogging {
-        showStandardStreams = true
+        showStandardStreams = false
         exceptionFormat = TestExceptionFormat.FULL
     }
 }

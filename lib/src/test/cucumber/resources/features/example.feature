@@ -1,6 +1,6 @@
-Feature: Addition
+Feature: ToDo Lists
 
-  Scenario: Add two numbers
-    Given a number 5
-    When I add 10
-    Then the result should be 15
+  Scenario: Add item to an existing list
+    Given application page is open
+    When I add item "Cheese" to list "Groceries"
+    Then list "Groceries" should contain 4 items
