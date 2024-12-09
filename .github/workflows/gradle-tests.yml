@@ -10,6 +10,7 @@ on:
 
 jobs:
   test:
+    name: "Gradle tests"
     runs-on: ubuntu-latest
 
     steps:
@@ -35,14 +36,14 @@ jobs:
             gradle-${{ runner.os }}-
 
       # Step 4: Run Gradle tests
-      - name: Run unit tests
+      - name: unit
         run: ./gradlew unitTest
 
-      - name: Run REST Assured tests
+      - name: REST Assured
         run: ./gradlew apiTest
 
-      - name: Run selenium tests
+      - name: selenium
         run: ./gradlew seleniumTest
 
-      - name: Run cucumber features
+      - name: cucumber
         run: ./gradlew cucumberTest
